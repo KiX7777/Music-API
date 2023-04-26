@@ -18,10 +18,15 @@ function showData(data) {
   <ul class="songs">
   ${data.data
     .map(
-      (song) =>
-        ` <li>
+      (song, idx) =>
+        ` <li style="animation: show 400ms  ease-in-out; animation-delay: ${
+          70 * idx
+        }ms"
+        ;>
   <span><strong>${song.artist.name}</strong> - ${song.title}</span>
-  <button class="btn preview" data-artist="${song.artist.name}" data-title="${song.title}" data-id="${song.id}">Preview</button>
+  <button class="btn preview" data-artist="${song.artist.name}" data-title="${
+          song.title
+        }" data-id="${song.id}">Preview</button>
   <img class="cover" src="${song.album.cover_small}" />
   </li>`
     )
@@ -30,12 +35,6 @@ function showData(data) {
   `;
 
   const songs = document.querySelectorAll('li');
-  setTimeout(() => {
-    songs.forEach((song, idx) => {
-      song.style.animation = 'show 400ms forwards ease-in-out';
-      song.style.animationDelay = `${70 * idx}ms`;
-    });
-  }, 50);
 
   if (data.prev || data.next) {
     more.innerHTML = `

@@ -90,22 +90,24 @@ form button {
 ul.songs {
   list-style-type: none;
   padding: 0;
+  animation: show 200ms ease-in-out;
 }
 
 ul.songs li {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin: 10px 0;
   position: relative;
 }
 
 @keyframes show {
   from {
     opacity: 0;
+    display: none;
   }
   to {
     opacity: 1;
+    display: flex;
   }
 }
 
