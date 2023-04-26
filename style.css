@@ -100,6 +100,15 @@ ul.songs li {
   position: relative;
 }
 
+@keyframes show {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 .container {
   margin: 30px auto;
   min-width: 320px;

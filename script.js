@@ -9,7 +9,6 @@ const apiURL = 'https://api.lyrics.ovh';
 async function searchSongs(term) {
   const res = await fetch(`${apiURL}/suggest/${term}`);
   const data = await res.json();
-  console.log(data);
 
   showData(data);
 }
@@ -29,6 +28,14 @@ function showData(data) {
     .join('')}
   </ul>
   `;
+
+  const songs = document.querySelectorAll('li');
+  setTimeout(() => {
+    songs.forEach((song, idx) => {
+      song.style.animation = 'show 400ms forwards ease-in-out';
+      song.style.animationDelay = `${70 * idx}ms`;
+    });
+  }, 50);
 
   if (data.prev || data.next) {
     more.innerHTML = `
