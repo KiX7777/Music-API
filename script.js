@@ -4,61 +4,101 @@ const result = document.getElementById('result');
 const more = document.getElementById('more');
 const songEl = document.getElementById('song');
 
-const apiURL = 'https://api.lyrics.ovh';
+const songs = [];
 
-async function searchSongs(term) {
-  const res = await fetch(`${apiURL}/suggest/${term}`);
+let currentPage = 1;
+let itemsPerPage = 10;
+
+async function searchSongs(input) {
+  const apiURL = `https://itunes.apple.com/search?term=${input}&country=HR`;
+  const res = await fetch(`${apiURL}`);
   const data = await res.json();
 
-  showData(data);
+  result.innerHTML = ``; //remove song cards
+  songs.splice(0, songs.length); //clear songs array
+  currentPage = 1; // reset pagination
+
+  const unique = [
+    ...new Map(data.results.map((item) => [item['trackName'], item])).values(),
+  ];
+  console.log(data.results);
+  console.log(currentPage);
+
+  songs.push(...unique);
+  songs.sort((a, b) => {
+    //sort from newest
+    if (b.releaseDate > a.releaseDate) {
+      return 1;
+    } else {
+      return -1;
+    }
+  });
+  showData(songs); //render cards
 }
 
 function showData(data) {
-  result.innerHTML = `
+  const from = (currentPage - 1) * itemsPerPage;
+  const to = currentPage * itemsPerPage;
+
+  const songsOnly = data.filter((s) => s.kind === 'song'); //render only songs
+  const toRender = songsOnly.slice(from, to);
+  if (songsOnly.length === 0) {
+    result.innerHTML = `<h4>No results found </h4>`;
+  } else {
+    result.innerHTML = `
   <ul class="songs">
-  ${data.data
+  ${toRender
     .map(
       (song, idx) =>
-        ` <li style="animation: show 400ms  ease-in-out; animation-delay: ${
+        ` <li style="animation: show 400ms forwards  ease-in-out; animation-delay: ${
           70 * idx
         }ms"
         ;>
-  <span><strong>${song.artist.name}</strong> - ${song.title}</span>
-  <button class="btn preview" data-artist="${song.artist.name}" data-title="${
-          song.title
-        }" data-id="${song.id}">Preview</button>
-  <img class="cover" src="${song.album.cover_small}" />
+  <span><strong>${song.artistName}</strong> - ${song.trackName}</span>
+  <button onClick="(() => playSong(event,'${
+    song.previewUrl
+  }'))()" class="btn preview" data-artist="${song.artistName}" data-title="${
+          song.trackName
+        }" data-id="${song.trackId}">Preview</button>
+  <img class="cover" src="${song.artworkUrl60}" />
   </li>`
     )
     .join('')}
   </ul>
   `;
 
-  const songs = document.querySelectorAll('li');
-
-  if (data.prev || data.next) {
-    more.innerHTML = `
-    ${
-      data.prev
-        ? `<button class="btn" onClick="getMoreSongs('${data.prev}')">Prev</button>`
-        : ''
+    if (songsOnly.length > 10) {
+      more.innerHTML = `
+      ${
+        currentPage === 1
+          ? ''
+          : `   <button class="btn" onClick="(()=>{getMoreSongs(event)})()">Prev</button>
+      `
+      }
+   ${
+     toRender.length < 10 || currentPage === 5
+       ? ''
+       : `<button class="btn" onClick="(()=>{getMoreSongs(event)})()" >Next</button>`
+   }
+`;
+    } else {
+      more.innerHTML = '';
     }
-    ${
-      data.next
-        ? `<button class="btn" onClick="getMoreSongs('${data.next}')">Next</button>`
-        : ''
-    }
-    `;
-  } else {
-    more.innerHTML = '';
   }
 }
 // getting more songs (prev and next btns)
-async function getMoreSongs(url) {
-  const res = await fetch(`https://cors-anywhere.herokuapp.com/${url}`);
-  const data = await res.json();
-
-  showData(data);
+async function getMoreSongs(event) {
+  if (event.target.textContent === 'Prev') {
+    if (currentPage === 1) {
+      return;
+    }
+    currentPage--;
+  } else {
+    currentPage++;
+  }
+  console.log(currentPage);
+  console.log(songs.length);
+  showData(songs);
 }
 
 form.addEventListener('submit', (e) => {
@@ -72,25 +112,24 @@ form.addEventListener('submit', (e) => {
   if (!searchTerm) {
     alert('Please type in a search term');
   } else {
+    songEl.pause();
     searchSongs(standard);
   }
   search.value = '';
 });
 
-async function getPreview(title, id) {
-  if (!songEl.paused) {
+async function playSong(event, url) {
+  const btn = event.target;
+  if (!songEl.paused && event.target.textContent === 'Pause') {
     songEl.pause();
+    btn.textContent = 'Preview';
   } else {
-    const res = await fetch(`${apiURL}/suggest/${title}`);
-    const data = await res.json();
-
-    console.log();
-
-    const song = data.data.find((song) => song.id === +id);
-    console.log(song);
-    console.log(song.preview);
-    songEl.src = song.preview;
+    songEl.src = url;
     songEl.play();
+    document.querySelectorAll('li button').forEach((btn) => {
+      btn.textContent = 'Preview';
+    });
+    btn.textContent = 'Pause';
   }
 
   // const lyrics = data.lyrics.replace(/(\r\n|\r|\n)/g, '<br>');
@@ -103,24 +142,24 @@ async function getPreview(title, id) {
   // more.innerHTML = '';
 }
 
-result.addEventListener('click', (e) => {
-  if (!songEl.paused && e.target.tagName === 'BUTTON') {
-    songEl.pause();
+// result.addEventListener('click', (e) => {
+//   if (!songEl.paused && e.target.tagName === 'BUTTON') {
+//     songEl.pause();
 
-    e.target.textContent = 'Preview';
-  } else {
-    const clicked = e.target;
-    console.log(clicked);
-    if (clicked.tagName === 'BUTTON') {
-      const artist = clicked.getAttribute('data-artist');
-      const songTitle = clicked.getAttribute('data-title');
-      const id = clicked.getAttribute('data-id');
-      getPreview(songTitle, id);
+//     e.target.textContent = 'Preview';
+//   } else {
+//     const clicked = e.target;
+//     console.log(clicked);
+//     if (clicked.tagName === 'BUTTON') {
+//       const artist = clicked.getAttribute('data-artist');
+//       const songTitle = clicked.getAttribute('data-title');
+//       const id = clicked.getAttribute('data-id');
+//       getPreview(songTitle, id);
 
-      document.querySelectorAll('.preview').forEach((btn) => {
-        btn.textContent = 'Preview';
-      });
-      clicked.textContent = 'Stop';
-    }
-  }
-});
+//       document.querySelectorAll('.preview').forEach((btn) => {
+//         btn.textContent = 'Preview';
+//       });
+//       clicked.textContent = 'Stop';
+//     }
+//   }
+// });
